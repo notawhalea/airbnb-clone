@@ -3,6 +3,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const UserModel = require("./models/User");
 const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const app = express();
 const bcrypt = require("bcryptjs");
@@ -16,6 +17,7 @@ const corsOptions = {
 };
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(cors(corsOptions));
 //Oxh7tRL2UYqRkgJ0
 mongoose.connect(process.env.MONGO_URL);
@@ -55,7 +57,7 @@ app.post("/login", async (req, res) => {
               maxAge: 1000 * 60 * 60 * 24 * 7,
               httpOnly: true,
             })
-            .json("pass ok");
+            .json(userDoc);
         },
       );
     } else {
@@ -63,6 +65,19 @@ app.post("/login", async (req, res) => {
     }
   } else {
     res.json("not found");
+  }
+});
+
+app.get("/profile", (req, res) => {
+  const { token } = req.cookies;
+  if (token) {
+    jwt.verify(token, jwtSecret, {}, async (err, user) => {
+      if (err) throw err;
+      const { name, email, _id } = await UserModel.findById(user.id);
+      res.json({ name, email, _id });
+    });
+  } else {
+    res.json(null);
   }
 });
 
